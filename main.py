@@ -23,7 +23,7 @@ DISCOVERY_MODE = len(WATCH_CHAT_IDS) == 0
 
 BUTTON_TEXT = os.getenv("BUTTON_TEXT", "ЛОМАЙ МЕНЯ")
 BUTTON_URL  = os.getenv("BUTTON_URL", "https://ya.ru")
-BUTTON_HEADER_TEXT = os.getenv("BUTTON_HEADER_TEXT", " ")
+BUTTON_HEADER_TEXT = os.getenv("BUTTON_HEADER_TEXT", "WeWin WePlay WePari")
 # Управляет стилем: true = отвечать на пост (reply), false = просто новое сообщение
 REPLY_MODE = os.getenv("REPLY_MODE", "false").lower() in {"1","true","yes","y"}
 
