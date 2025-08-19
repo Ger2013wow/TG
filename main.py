@@ -1,69 +1,114 @@
-import asyncio
+# pip install aiogram==2.25.1
 import os
-from aiogram import Bot, Dispatcher
-from aiogram.filters import CommandStart
-from aiogram.types import (
-    Message, InlineKeyboardMarkup, InlineKeyboardButton,
-    ChatMemberUpdated
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+
+# ===== Совместимость с "прошлым" ботом =====
+BOT_TOKEN = (
+    os.getenv("TELEGRAM_BOT_TOKEN")      # как было раньше
+    or os.getenv("BOT_TOKEN")            # альтернативно
+    or os.getenv("TOKEN")                # на всякий случай
 )
-from aiogram.enums.chat_member_status import ChatMemberStatus
-from aiogram.client.default import DefaultBotProperties
-from aiogram.exceptions import TelegramForbiddenError
+if not BOT_TOKEN:
+    raise RuntimeError("Не найден токен: TELEGRAM_BOT_TOKEN / BOT_TOKEN / TOKEN")
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
-GROUP_ID = int(os.getenv("GROUP_ID", "0"))
-JOIN_REQUEST_LINK = os.getenv("JOIN_REQUEST_LINK", "").strip()
-WELCOME_DM_TEXT = os.getenv(
-    "WELCOME_DM_TEXT",
-    "👋 Добро пожаловать!\n🎁 Бонус-код: WEPARI2025\nУсловия: вейджер x30..."
-)
+# Поддерживаем несколько вариантов переменных с chat id из прошлого бота
+def collect_chat_ids():
+    ids = set()
+    # Универсальные:
+    for name in ["CHAT_ID", "GROUP_ID", "CHANNEL_ID"]:
+        v = os.getenv(name)
+        if v:
+            ids.add(int(v))
 
-if not BOT_TOKEN or not GROUP_ID or not JOIN_REQUEST_LINK:
-    raise SystemExit("Set BOT_TOKEN, GROUP_ID, JOIN_REQUEST_LINK env vars")
+    # Список через запятую:
+    for name in ["CHAT_IDS", "GROUP_IDS", "CHANNEL_IDS"]:
+        v = os.getenv(name)
+        if v:
+            for part in v.split(","):
+                part = part.strip()
+                if part:
+                    ids.add(int(part))
 
-bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
-dp = Dispatcher()
+    # Языковые/региональные (как раньше):
+    for name in [
+        "GROUP_ID_RU", "GROUP_ID_EN", "GROUP_ID_TR", "GROUP_ID_AZ", "GROUP_ID_ES",
+        "GROUP_ID_AR", "GROUP_ID_KZ", "GROUP_ID_UA"
+    ]:
+        v = os.getenv(name)
+        if v:
+            ids.add(int(v))
 
-def kb_join() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔓 Вступить в группу", url=JOIN_REQUEST_LINK)]
-    ])
+    return ids
 
-@dp.message(CommandStart())
-async def on_start(m: Message):
-    await m.answer(
-        "Привет! Нажми «Вступить в группу». После вступления пришлю сообщение в личку.",
-        reply_markup=kb_join()
-    )
+TARGET_CHAT_IDS = collect_chat_ids()
+# Если пусто — работаем в режиме «определи id в логах»
+DISCOVERY_MODE = len(TARGET_CHAT_IDS) == 0
 
-@dp.chat_member()
-async def on_chat_member(update: ChatMemberUpdated):
-    # Ловим факт вступления в нужную группу
-    if update.chat.id != GROUP_ID:
+# Кнопки: "Текст|URL;Текст2|URL2"
+RAW_BUTTONS = os.getenv("BUTTONS", "Перейти 🌐|https://wepari.com")
+BUTTON_HEADER_TEXT = os.getenv("BUTTON_HEADER_TEXT", "👉 Кнопка для поста выше")
+ROW_WIDTH = int(os.getenv("BUTTON_ROW_WIDTH", "1"))  # 1 = столбиком, 2 = по две в ряд
+
+def parse_buttons(raw: str):
+    buttons = []
+    for chunk in (raw or "").split(";"):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        if "|" in chunk:
+            txt, url = chunk.split("|", 1)
+            buttons.append({"text": txt.strip(), "url": url.strip()})
+        else:
+            # fallback: если без |, используем и как текст, и как url
+            buttons.append({"text": chunk, "url": chunk})
+    return buttons
+
+BUTTONS = parse_buttons(RAW_BUTTONS)
+
+# ===== Бот =====
+bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+dp = Dispatcher(bot)
+
+def make_keyboard():
+    kb = types.InlineKeyboardMarkup(row_width=ROW_WIDTH)
+    for b in BUTTONS:
+        if not b.get("text") or not b.get("url"):
+            continue
+        kb.add(types.InlineKeyboardButton(text=b["text"], url=b["url"]))
+    return kb
+
+@dp.message_handler(content_types=types.ContentTypes.ANY)
+async def attach_buttons(message: types.Message):
+    # Если мы в режиме поиска chat id — просто логируем
+    if DISCOVERY_MODE:
+        print(f"[DISCOVERY] chat id: {message.chat.id} | title: {message.chat.title}")
         return
-    if (
-        update.new_chat_member.status == ChatMemberStatus.MEMBER and
-        update.old_chat_member.status != ChatMemberStatus.MEMBER
-    ):
-        user = update.new_chat_member.user
-        await try_dm_or_fallback(user.id, user.full_name)
 
-async def try_dm_or_fallback(user_id: int, full_name: str):
+    # Только целевые чаты
+    if message.chat.id not in TARGET_CHAT_IDS:
+        return
+
+    # Игнор ботов (включая себя)
+    if message.from_user and message.from_user.is_bot:
+        return
+
+    # Отправляем ответ с кнопками «под» исходным постом
     try:
-        await bot.send_message(user_id, WELCOME_DM_TEXT)
-    except TelegramForbiddenError:
-        # Юзер не нажал Start — отправим подсказку в группу
-        mention = f"<a href='tg://user?id={user_id}'>{full_name}</a>"
-        msg = f"{mention}, откройте чат с ботом @wepari_tr_bot и нажмите /start, чтобы получить бонус."
-        try:
-            await bot.send_message(GROUP_ID, msg, disable_web_page_preview=True)
-        except Exception:
-            pass
-
-async def main():
-    me = await bot.get_me()
-    print(f"Started @{me.username} | GROUP_ID={GROUP_ID}")
-    await dp.start_polling(bot, allowed_updates=["message", "chat_member"])
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text=BUTTON_HEADER_TEXT,
+            reply_markup=make_keyboard(),
+            reply_to_message_id=message.message_id
+        )
+    except Exception as e:
+        print(f"[ERROR] failed to send buttons: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    print("Buttons relay bot started (long polling).")
+    if DISCOVERY_MODE:
+        print("DISCOVERY_MODE=ON → напишите что-нибудь в нужной группе, в логах появится её chat id.")
+    else:
+        print(f"Watching chat ids: {sorted(TARGET_CHAT_IDS)}")
+    from aiogram import executor as ex
+    ex.start_polling(dp, skip_updates=True)
