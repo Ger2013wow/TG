@@ -1,10 +1,10 @@
 TEXTS = {
     "welcome": {
-        "en": "🎉 Welcome to the **WePari** bot!\nJoin our group where winners are made, daily bonuses drop, and you get the hottest news about our platform.\nIf the language is incorrect, pick the right one below, then tap **“Join the Group”**.",
-        "ru": "🎉 Добро пожаловать в бот **WePari**!\nВступайте в группу, где выигрывают, получают бонусы каждый день и первыми узнают о новостях.\nЕсли язык выбран неверно — смените его ниже, затем нажмите **«Перейти в группу»**.",
-        "tr": "🎉 **WePari** botuna hoş geldiniz!\nKazananların buluştuğu, günlük bonusların dağıtıldığı grubumuza katılın.\nDil yanlışsa aşağıdan değiştirin, ardından **“Gruba Katıl”**.",
-        "az": "🎉 **WePari** botuna xoş gəlmisiniz!\nQaliblərin toplandığı, gündəlik bonusların paylandığı qrupumuza qoşulun.\nDil səhvdirsə, aşağıdan dəyişin, sonra **“Qrupa Qoşul”** düyməsinə basın.",
-        "es": "🎉 ¡Bienvenido al bot de **WePari**!\nÚnete a nuestro grupo donde están los ganadores y se reparten bonos diarios.\nSi el idioma no es correcto, cámbialo abajo y pulsa **“Unirse al grupo”**."
+        "en": "🎉 Welcome to the WePari bot!\nJoin our group to activate your bonus — I’ll send your promo code right here in this chat as soon as you join.\nIf the language is incorrect, pick the right one below, then tap “Join the Group”.",
+        "ru": "🎉 Добро пожаловать в бот WePari!\nВступите в группу, чтобы активировать бонус — промокод я пришлю прямо сюда, в этот чат, как только вы вступите.\nЕсли язык выбран неверно — смените его ниже, затем нажмите «Перейти в группу».",
+        "tr": "🎉 WePari botuna hoş geldiniz!\nBonusu etkinleştirmek için gruba katıl — katıldıktan hemen sonra promosyon kodunu buraya, bu sohbete göndereceğim.\nDil yanlışsa aşağıdan değiştirin, ardından “Gruba Katıl” düğmesine basın.",
+        "az": "🎉 WePari botuna xoş gəlmisiniz!\nBonusu aktivləşdirmək üçün qrupa qoşul — qoşular-qoşulmaz promokodu birbaşa bu söhbətə göndərəcəyəm.\nDil səhvdirsə, aşağıdan dəyişin, sonra “Qrupa Qoşul” düyməsinə basın.",
+        "es": "🎉 ¡Bienvenido al bot de WePari!\nÚnete al grupo para activar tu bono — en cuanto te unas, te enviaré el código promocional aquí mismo, en este chat.\nSi el idioma no es correcto, cámbialo abajo y pulsa “Unirse al grupo”."
     },
     "join_btn": {
         "en": "Join the Group",
